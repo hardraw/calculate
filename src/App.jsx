@@ -17,6 +17,7 @@ export default function CarExpensesCalculator() {
   const [revisiones, setRevisiones] = useState('');
   const [totalCost, setTotalCost] = useState('');
   const [vehicles, setVehicles] = useState([]);
+  const [vehiclesPrice, setVehiclesPrice] = useState([]);
   const [loading, setLoading] = useState(true);
   const [idAll, setIdAll] = useState([]);
   const [marcas, setMarcas] = useState([]);
@@ -24,7 +25,8 @@ export default function CarExpensesCalculator() {
   const [bodyMonthly, setMonthly] = useState([]);
   const [resultPrice, setResultPrice] = useState([]);
   const apiUrl = 'https://dev-cms.rentingtuio.com.co/api/vcs-vehiculos?populate=type&populate=Caract.characteristic&populate=main_image';
-  const priceApiUrl = 'https://vcs.rentingtuio.com.co/api/cotizador'
+  const priceApiUrl = 'https://vcs.rentingtuio.com.co/api/cotizador';
+  const vehiclesPriceUrl = 'https://dev-vcs.rentingtuio.com.co/api/cars?populate=*'
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -40,9 +42,9 @@ export default function CarExpensesCalculator() {
       //const capital = parseFloat(precioAuto.replace(/,/g, '')); // Remover comas de miles y convertir a número
       const capital = precioAuto
       const meses = parseInt(plazoMes);
-      setTodoRiesgo(((precioAuto * 0.035)).toFixed(0))
+      setTodoRiesgo(((precioAuto * 0.03)).toFixed(0))
       setSoat(622000)
-      setMatricula(485000)
+      setMatricula(750000)
       setRevisiones((precioAuto * 0.05) * 4)
       const cuota =
         (capital * tasaInteres * Math.pow(1 + tasaInteres, meses)) /
@@ -58,6 +60,14 @@ export default function CarExpensesCalculator() {
       .then((response) => {
         setVehicles(response.data.data);
         setLoading(false);
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+    axios.get(vehiclesPriceUrl)
+      .then((response) => {
+        console.log(response.data, 'vehiclesPriceUrl')
+        setVehiclesPrice(response.data.data)
       })
       .catch((error) => {
         console.error(error);
@@ -115,7 +125,6 @@ export default function CarExpensesCalculator() {
       resultPrice.forEach(function (item) {
         if (vehicle.attributes.ID_propio === item.id.toString()) {
           vehicle.attributes.priceNormal = item.price;
-          //agregar el valor del vehiculo real de precio venta al publico.
         }
       });
       vehiclesPvp.forEach(function (item){
@@ -123,8 +132,25 @@ export default function CarExpensesCalculator() {
           vehicle.attributes.pricePvp = item.valorPVP;
         }
       })
+      // vehiclesPrice.forEach(function (item){
+      //   if (vehicle.attributes.ID_propio === item.attributes.internal_code) {
+      //     vehicle.attributes.pricePvp = item.attributes.PVC;
+      //     vehicle.attributes.typeVehicle = item.attributes.Type.Type;
+      //     vehicle.attributes.Cilindraje = item.attributes.datasheet[0].cilindraje;
+      //   }
+      // })
     });
   }
+
+  function handleVehicleChange(e) {
+    const selectedVehicle = vehicles.find(v => v.attributes.ID_propio === e.target.value);
+    setSelectedVehicle(selectedVehicle);
+    setPrecioAuto(selectedVehicle?.attributes?.pricePvp ?? "");
+  }
+
+  console.log(vehicles, 'vehicle')
+  console.log(vehiclesPrice, 'vehiclesPrice')
+  console.log(selectedVehicle, 'vehiclesPrice')
 
   return (
     <div className="row col-2 gap-30">
@@ -134,7 +160,7 @@ export default function CarExpensesCalculator() {
           <div className="row col-2 gap-10">
             <label>
               Valor del vehículo
-              <input type="text" value={precioAuto} onChange={(e) => {
+              <input type="text" value={precioAuto.toLocaleString()} readOnly={true} style={{ cursor: 'not-allowed' }} onChange={(e) => {
                 setPrecioAuto(e.target.value);
               }} />
             </label>
@@ -159,22 +185,21 @@ export default function CarExpensesCalculator() {
           <div className="row col-2 gap-10">
             <label>
               Seguro Todo riesgo:
-              <input type="text" value={todoRiesgo} onChange={(e) => setTodoRiesgo(e.target.value)} />
+              <input type="text" value={todoRiesgo.toLocaleString()} readOnly={true} style={{ cursor: 'not-allowed' }} onChange={(e) => setTodoRiesgo(e.target.value)} />
             </label>
             <label>
               SOAT:
-              <input type="text" value={soat} onChange={(e) => setSoat(e.target.value)} />
+              <input type="text" value={soat.toLocaleString()} readOnly={true} style={{ cursor: 'not-allowed' }} onChange={(e) => setSoat(e.target.value)} />
             </label>
           </div>
-
           <div className="row col-2 gap-10">
             <label>
               Matrícula:
-              <input type="text" value={matricula} onChange={(e) => setMatricula(e.target.value)} />
+              <input type="text" value={matricula.toLocaleString()} readOnly={true} style={{ cursor: 'not-allowed' }} onChange={(e) => setMatricula(e.target.value)} />
             </label>
             <label>
               Revisiones Técnicas:
-              <input type="text" value={revisiones} onChange={(e) => setRevisiones(e.target.value)} />
+              <input type="text" value={revisiones.toLocaleString()} readOnly={true} style={{ cursor: 'not-allowed' }} onChange={(e) => setRevisiones(e.target.value)} />
             </label>
           </div>
 
@@ -207,7 +232,7 @@ export default function CarExpensesCalculator() {
           <h1>Suscripción mensual con Renting TUIO</h1>
 
           <form action="">
-            <select name="" id="" onChange={(e) => setSelectedVehicle(vehicles.find(v => v.attributes.ID_propio === e.target.value),  setPrecioAuto(selectedVehicle?.attributes?.pricePvp ?? ""))}>
+            <select name="" id="" onChange={handleVehicleChange}>
               {vehicles.map((vehicle, index) => (
                 <option key={index} value={vehicle.attributes.ID_propio}>
                   {vehicle?.attributes?.Marca + ' ' + vehicle?.attributes?.Modelo + ' ' + vehicle?.attributes?.Referencia}

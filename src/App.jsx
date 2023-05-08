@@ -3,13 +3,14 @@ import { useState, useEffect } from 'react';
 import './App.css'
 import car from './assets/renault-sandero.png';
 import axios from 'axios';
+import vehiclesPvp from './vehiclesPvp.json';
 
 
 export default function CarExpensesCalculator() {
   const [precioAuto, setPrecioAuto] = useState('');
-  const [plazoMes, setPlazoMes] = useState(60);
+  const [plazoMes, setPlazoMes] = useState(48);
   const [cuotaMensual, setCuotaMensual] = useState('');
-  const [intMensual, setInteresMensual] = useState(1.8);
+  const [intMensual, setInteresMensual] = useState(2.2);
   const [todoRiesgo, setTodoRiesgo] = useState('');
   const [soat, setSoat] = useState(0);
   const [matricula, setMatricula] = useState('');
@@ -36,8 +37,13 @@ export default function CarExpensesCalculator() {
     // Calcular la cuota mensual y actualizar el estado cada vez que cambien los valores de precioAuto, plazoMes o intMensual
     const calcularCuotaMensual = () => {
       const tasaInteres = intMensual / 100;
-      const capital = parseFloat(precioAuto.replace(/,/g, '')); // Remover comas de miles y convertir a número
+      //const capital = parseFloat(precioAuto.replace(/,/g, '')); // Remover comas de miles y convertir a número
+      const capital = precioAuto
       const meses = parseInt(plazoMes);
+      setTodoRiesgo(((precioAuto * 0.035)).toFixed(0))
+      setSoat(622000)
+      setMatricula(485000)
+      setRevisiones((precioAuto * 0.05) * 4)
       const cuota =
         (capital * tasaInteres * Math.pow(1 + tasaInteres, meses)) /
         (Math.pow(1 + tasaInteres, meses) - 1);
@@ -57,13 +63,6 @@ export default function CarExpensesCalculator() {
         console.error(error);
       });
   }, []);
-
-  // useEffect(() => {
-  //   if(vehicles.length > 0) {
-  //     console.log(vehicles[0].attributes.ID_propio, 'vehicles validation')
-  //     //setSelectedVehicle(vehicles[0].attributes?.ID_propio)
-  //   }
-  // }, [vehicles]);
 
   useEffect(() => {
     if (!vehicles || vehicles.length === 0) return;
@@ -116,13 +115,16 @@ export default function CarExpensesCalculator() {
       resultPrice.forEach(function (item) {
         if (vehicle.attributes.ID_propio === item.id.toString()) {
           vehicle.attributes.priceNormal = item.price;
+          //agregar el valor del vehiculo real de precio venta al publico.
         }
       });
+      vehiclesPvp.forEach(function (item){
+        if (vehicle.attributes.ID_propio === item.ID_propio) {
+          vehicle.attributes.pricePvp = item.valorPVP;
+        }
+      })
     });
   }
-
-  //console.log(resultPrice, 'resultPrice')
-  console.log(vehicles, 'vehicles')
 
   return (
     <div className="row col-2 gap-30">
@@ -180,8 +182,6 @@ export default function CarExpensesCalculator() {
           <div className="row">
             <button type="submit">Calcular</button>
           </div>
-
-
         </form>
 
         <div className="row col-2 gap-10 block-totals">
@@ -207,10 +207,10 @@ export default function CarExpensesCalculator() {
           <h1>Suscripción mensual con Renting TUIO</h1>
 
           <form action="">
-            <select name="" id="" onChange={(e) => setSelectedVehicle(vehicles.find(v => v.attributes.ID_propio === e.target.value))}>
+            <select name="" id="" onChange={(e) => setSelectedVehicle(vehicles.find(v => v.attributes.ID_propio === e.target.value),  setPrecioAuto(selectedVehicle?.attributes?.pricePvp ?? ""))}>
               {vehicles.map((vehicle, index) => (
                 <option key={index} value={vehicle.attributes.ID_propio}>
-                  {vehicle.attributes.Marca + ' ' + vehicle.attributes.Modelo + ' ' + vehicle.attributes.Referencia}
+                  {vehicle?.attributes?.Marca + ' ' + vehicle?.attributes?.Modelo + ' ' + vehicle?.attributes?.Referencia}
                 </option>
               ))}
             </select>

@@ -9,16 +9,16 @@ import vehiclesPvp from './vehiclesPvp.json';
 export default function CarExpensesCalculator() {
   const [precioAuto, setPrecioAuto] = useState('');
   const [plazoMes, setPlazoMes] = useState(48);
-  const [cuotaMensual, setCuotaMensual] = useState('');
+  const [cuotaMensual, setCuotaMensual] = useState(0);
   const [intMensual, setInteresMensual] = useState(2.2);
-  const [todoRiesgo, setTodoRiesgo] = useState('');
+  const [todoRiesgo, setTodoRiesgo] = useState(0);
   const [soat, setSoat] = useState(0);
   const [matricula, setMatricula] = useState('');
   const [revisiones, setRevisiones] = useState('');
   const [totalCost, setTotalCost] = useState('');
   const [vehicles, setVehicles] = useState([]);
   const [vehiclesPrice, setVehiclesPrice] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [idAll, setIdAll] = useState([]);
   const [marcas, setMarcas] = useState([]);
   const [selectedVehicle, setSelectedVehicle] = useState('');
@@ -28,12 +28,7 @@ export default function CarExpensesCalculator() {
   const priceApiUrl = 'https://vcs.rentingtuio.com.co/api/cotizador';
   const vehiclesPriceUrl = 'https://dev-vcs.rentingtuio.com.co/api/cars?populate=*'
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
 
-    const total = parseInt((Number(cuotaMensual)) + (Number(todoRiesgo) / 12) + (Number(soat) / 12) + (Number(matricula) / 12) + (Number(revisiones) / 12));
-    setTotalCost(isNaN(total) ? 0 : total);
-  };
 
   useEffect(() => {
     // Calcular la cuota mensual y actualizar el estado cada vez que cambien los valores de precioAuto, plazoMes o intMensual
@@ -45,7 +40,7 @@ export default function CarExpensesCalculator() {
       setTodoRiesgo(((precioAuto * 0.03)).toFixed(0))
       setSoat(622000)
       setMatricula(750000)
-      setRevisiones((precioAuto * 0.05) * 4)
+      setRevisiones(((precioAuto * 0.05) / 4) / 12)
       const cuota =
         (capital * tasaInteres * Math.pow(1 + tasaInteres, meses)) /
         (Math.pow(1 + tasaInteres, meses) - 1);
@@ -59,14 +54,14 @@ export default function CarExpensesCalculator() {
     axios.get(apiUrl)
       .then((response) => {
         setVehicles(response.data.data);
-        setLoading(false);
+        const selectedVehicle2 = vehicles.find(v => v.attributes.ID_propio === '435');
+        setSelectedVehicle(selectedVehicle2)
       })
       .catch((error) => {
         console.error(error);
       });
     axios.get(vehiclesPriceUrl)
       .then((response) => {
-        console.log(response.data, 'vehiclesPriceUrl')
         setVehiclesPrice(response.data.data)
       })
       .catch((error) => {
@@ -78,6 +73,7 @@ export default function CarExpensesCalculator() {
     if (!vehicles || vehicles.length === 0) return;
     setMarcas(marcasNew);
     setIdAll(vehicleIdNew);
+    //setLoading(true);
   }, [vehicles]);
 
   useEffect(() => {
@@ -94,7 +90,29 @@ export default function CarExpensesCalculator() {
     postPricesMonthly(priceApiUrl, bodyMonthly)
       .then(result => setResultPrice(result))
 
+      setPrecioAuto(selectedVehicle?.attributes?.pricePvp ?? "");
+      const tasaInteres = intMensual / 100;
+      const meses = parseInt(plazoMes);
+      const cuota =
+        (selectedVehicle?.attributes?.pricePvp * tasaInteres * Math.pow(1 + tasaInteres, meses)) /
+        (Math.pow(1 + tasaInteres, meses) - 1);
+      const total = parseInt((Number(cuota)) + (Number(((selectedVehicle?.attributes?.pricePvp * 0.03)).toFixed(0)) / 12) + (Number(soat) / 12) + (Number(matricula) / 12) + (Number((selectedVehicle?.attributes?.pricePvp * 0.05) * 4) / 12));
+      setTotalCost(isNaN(total) ? 0 : total);
   }, [bodyMonthly]);
+
+  // useEffect(() => {
+  //   // console.log(selectedVehicle , 'selectedVehicle before if')
+  //   if(selectedVehicle != undefined && selectedVehicle != ''){
+  //     //console.log(selectedVehicle, 'selectedVehicle')
+  //     //const selectedVehicle2 = vehicles.find(v => v.attributes.ID_propio === '435');
+  //     //console.log(selectedVehicle2 , 'selectedVehicle2')
+  //     //setSelectedVehicle(selectedVehicle2);
+  //     //setLoading(true);
+  //     //console.log(selectedVehicle2, 'selectedVehicle2')
+  //     //handleVehicleChange({target: {value: selectedVehicle2?.attributes?.ID_propio}});
+  //     //handleVehicleChange({target: {value: selectedVehicle2}});
+  //   }
+  // }, [selectedVehicle]);
 
   const postPricesMonthly = async (priceUrl, data) => {
     try {
@@ -127,7 +145,7 @@ export default function CarExpensesCalculator() {
           vehicle.attributes.priceNormal = item.price;
         }
       });
-      vehiclesPvp.forEach(function (item){
+      vehiclesPvp.forEach(function (item) {
         if (vehicle.attributes.ID_propio === item.ID_propio) {
           vehicle.attributes.pricePvp = item.valorPVP;
         }
@@ -142,92 +160,88 @@ export default function CarExpensesCalculator() {
     });
   }
 
-  function handleVehicleChange(e) {
+  const handleVehicleChange = (e) => {
+    e.preventDefault();
     const selectedVehicle = vehicles.find(v => v.attributes.ID_propio === e.target.value);
     setSelectedVehicle(selectedVehicle);
     setPrecioAuto(selectedVehicle?.attributes?.pricePvp ?? "");
+    const tasaInteres = intMensual / 100;
+    const meses = parseInt(plazoMes);
+    const cuota =
+      (selectedVehicle?.attributes?.pricePvp * tasaInteres * Math.pow(1 + tasaInteres, meses)) /
+      (Math.pow(1 + tasaInteres, meses) - 1);
+    const total = parseInt((Number(cuota)) + (Number(((selectedVehicle?.attributes?.pricePvp * 0.03)).toFixed(0)) / 12) + (Number(soat) / 12) + (Number(matricula) / 12) + (Number((selectedVehicle?.attributes?.pricePvp * 0.05) / 4) / 12));
+    setTotalCost(isNaN(total) ? 0 : total);
   }
 
-  console.log(vehicles, 'vehicle')
-  console.log(vehiclesPrice, 'vehiclesPrice')
-  console.log(selectedVehicle, 'vehiclesPrice')
+  const calculateTotalCost = () => {
+    const total = parseInt((Number(cuotaMensual)) + (Number(todoRiesgo) / 12) + (Number(soat) / 12) + (Number(matricula) / 12) + (Number(revisiones) / 4));
+    setTotalCost(isNaN(total) ? 0 : total);
+  }
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    calculateTotalCost();
+  };
 
   return (
-    <div className="row col-2 gap-30">
-      <div className='container'>
-        <h1>Calculadora de gastos de vehículo</h1>
-        <form onSubmit={handleSubmit}>
-          <div className="row col-2 gap-10">
-            <label>
-              Valor del vehículo
-              <input type="text" value={precioAuto.toLocaleString()} readOnly={true} style={{ cursor: 'not-allowed' }} onChange={(e) => {
-                setPrecioAuto(e.target.value);
-              }} />
-            </label>
-            <label>
-              Meses:
-              <input type="text" value={plazoMes} onChange={(e) => {
-                setPlazoMes(e.target.value);
-              }} />
-            </label>
+    <>
+      <div className="row col-2 gap-30">
+        <div className='container'>
+          <h1>Calculadora de gastos de vehículo</h1>
+          <form onSubmit={handleSubmit}>
+            <div className="row col-2 gap-10">
+              <label>
+                Valor del vehículo
+                <input type="text" value={precioAuto.toLocaleString()} readOnly={true} style={{ cursor: 'not-allowed' }} onChange={(e) => {
+                  setPrecioAuto(e.target.value);
+                }} />
+              </label>
+              <label>
+                Meses:
+                <input type="text" style={{ background: '#EEF5FF' }} value={plazoMes} onChange={(e) => {
+                  setPlazoMes(e.target.value);
+                }} />
+              </label>
 
-          </div>
-          <div className="row col-2 gap-10">
-            <label>
-              Cuota mensual con banco:
-              <input type="text" value={isNaN(cuotaMensual) ? 0 : cuotaMensual} onChange={(e) => calcCuota()} readyOnly />
-            </label>
-            <label>
-              Interés mensual:
-              <input type="text" value={intMensual} onChange={(e) => setInteresMensual(e.target.value)} />
-            </label>
-          </div>
-          <div className="row col-2 gap-10">
-            <label>
-              Seguro Todo riesgo:
-              <input type="text" value={todoRiesgo.toLocaleString()} readOnly={true} style={{ cursor: 'not-allowed' }} onChange={(e) => setTodoRiesgo(e.target.value)} />
-            </label>
-            <label>
-              SOAT:
-              <input type="text" value={soat.toLocaleString()} readOnly={true} style={{ cursor: 'not-allowed' }} onChange={(e) => setSoat(e.target.value)} />
-            </label>
-          </div>
-          <div className="row col-2 gap-10">
-            <label>
-              Matrícula:
-              <input type="text" value={matricula.toLocaleString()} readOnly={true} style={{ cursor: 'not-allowed' }} onChange={(e) => setMatricula(e.target.value)} />
-            </label>
-            <label>
-              Revisiones Técnicas:
-              <input type="text" value={revisiones.toLocaleString()} readOnly={true} style={{ cursor: 'not-allowed' }} onChange={(e) => setRevisiones(e.target.value)} />
-            </label>
-          </div>
-
-
-          <div className="row">
-            <button type="submit">Calcular</button>
-          </div>
-        </form>
-
-        <div className="row col-2 gap-10 block-totals">
-          <div className="block">
-            <p>Costo mantenimiento Mensual de tu carro:  </p>
-            <h3>{totalCost.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</h3>
-          </div>
-
-          <div className="block">
-            <p>Costo total por los {plazoMes} meses que demoraste pagando el crédito del carro:  </p>
-            <h3>{(totalCost * plazoMes).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</h3>
-          </div>
-        </div>
-
-        <div className="row">
-          <small>Nota: Los valores anteriores son estimativos, y de consumo mensual, pueden variar de acuerdo al precio del vehículo o al perfil crediticio que tengas en el momento.</small>
-        </div>
+            </div>
+            <div className="row col-2 gap-10">
+              <label>
+                Cuota mensual con banco:
+                <input type="text" style={{ background: '#EEF5FF' }} value={isNaN(cuotaMensual) ? 0 : parseInt(cuotaMensual).toLocaleString()} onChange={(e) => calcCuota()} readyOnly />
+              </label>
+              <label>
+                Interés mensual:
+                <input type="text" style={{ background: '#EEF5FF' }} value={intMensual} onChange={(e) => setInteresMensual(e.target.value)} />
+              </label>
+            </div>
+            <div className="row col-2 gap-10">
+              <label>
+                Seguro Todo riesgo:
+                <input type="text" value={parseInt(todoRiesgo).toLocaleString()} readOnly={true} style={{ cursor: 'not-allowed' }} onChange={(e) => setTodoRiesgo(e.target.value)} />
+              </label>
+              <label>
+                SOAT:
+                <input type="text" value={soat.toLocaleString()} readOnly={true} style={{ cursor: 'not-allowed' }} onChange={(e) => setSoat(e.target.value)} />
+              </label>
+            </div>
+            <div className="row col-2 gap-10">
+              <label>
+                Matrícula:
+                <input type="text" value={matricula.toLocaleString()} readOnly={true} style={{ cursor: 'not-allowed' }} onChange={(e) => setMatricula(e.target.value)} />
+              </label>
+              <label>
+                Revisiones Técnicas:
+                <input type="text" value={revisiones.toLocaleString()} readOnly={true} style={{ cursor: 'not-allowed' }} onChange={(e) => setRevisiones(e.target.value)} />
+              </label>
+            </div>
 
 
-      </div>
-      <div className="row">
+            <div className="row">
+              <button type="submit">Calcular</button>
+            </div>
+          </form>
+        </div>        
         <div className="container">
           <h1>Suscripción mensual con Renting TUIO</h1>
 
@@ -247,13 +261,41 @@ export default function CarExpensesCalculator() {
               <div className="block-bg">
                 <h2>Valor suscripción por 48 meses</h2>
                 <h3>$ {selectedVehicle?.attributes?.priceNormal.toLocaleString()} IVA incluido</h3>
-                <p>costo total por 48 meses con suscripción y 10.000 kilometros:</p>
-                <p>$ {(selectedVehicle?.attributes?.priceNormal * 48).toLocaleString()}</p>
               </div>
             </div>
           )}
         </div>
       </div>
-    </div>
+      <div className="row col-1 gap-30">
+        <div className="container">
+          {selectedVehicle && (
+            <div className="block">
+              <h2>{selectedVehicle?.attributes?.Marca + ' ' + selectedVehicle?.attributes?.Modelo + ' ' + selectedVehicle?.attributes?.Referencia} Comparativa:</h2>
+              <div className='grid'>
+                <div>
+                  <p>Costo Mensual de tener tu vehículo con un credito tradicional:</p>
+                  <h3>{totalCost.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</h3>
+                </div>
+                <div>
+                  <p>Valor suscripción Tuio Mensual</p>
+                  <h3>$ {selectedVehicle?.attributes?.priceNormal.toLocaleString()} IVA incluido</h3>
+                </div>
+                <div>
+                  <p>Costo total por los {plazoMes} meses que demoraste pagando el crédito del vehículo:  </p>
+                  <h3>{(totalCost * plazoMes).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</h3>
+                </div>
+                <div>
+                  <p>costo total por 48 meses con suscripción y 10.000 kilometros:</p>
+                  <h3>$ {(selectedVehicle?.attributes?.priceNormal * 48).toLocaleString()}</h3>
+                </div>                
+              </div>
+              <div className="row">
+                <small>Nota: Los valores anteriores son estimativos, y de consumo mensual, pueden variar de acuerdo al precio del vehículo o al perfil crediticio que tengas en el momento. Tambien no se aplican valores de depreciacion e impuestos anuales de acuerdo a tu secretaria de transito para tu credito tradicional</small>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
   );
 }

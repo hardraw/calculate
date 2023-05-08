@@ -25,17 +25,16 @@ body{
 }
 
 .container {
-  max-width: 450px;
-  margin: 0 auto;
+  margin: 1rem auto;
   background: white;
-  padding: 3rem 3rem;
+  padding: 1rem 3rem;
   border-radius: 10px;
   box-shadow: 0 20px 20px 20px rgba(0,0,0,.05);
-  
+  width: 100%;  
 }
 
 .row {
-  width: 100%;
+  max-width: 90vh;
   display: grid;
 }
 
@@ -122,6 +121,15 @@ button {
   max-width: 100%;
 }
 
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  justify-content: space-between;
+}
+
+.grid p {
+  min-height: 2rem;
+}
 @media (min-width: 768px) {
   .col-2 {
     grid-template-columns: 1fr 1fr;

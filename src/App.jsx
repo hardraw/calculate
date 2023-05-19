@@ -193,9 +193,6 @@ export default function CarExpensesCalculator() {
     calculateTotalCost();
   };
 
-  console.log(vehicles, 'vehicles')
-
-
   return (
     <>
       <div className="row col-2 gap-30">

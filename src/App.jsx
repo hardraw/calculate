@@ -12,7 +12,7 @@ export default function CarExpensesCalculator() {
   const [cuotaMensual, setCuotaMensual] = useState(0);
   const [intMensual, setInteresMensual] = useState(2.2);
   const [todoRiesgo, setTodoRiesgo] = useState(0);
-  const [soat, setSoat] = useState(0);
+  const [soat, setSoat] = useState(622000);
   const [matricula, setMatricula] = useState('');
   const [revisiones, setRevisiones] = useState('');
   const [totalCost, setTotalCost] = useState('');
@@ -34,11 +34,9 @@ export default function CarExpensesCalculator() {
     // Calcular la cuota mensual y actualizar el estado cada vez que cambien los valores de precioAuto, plazoMes o intMensual
     const calcularCuotaMensual = () => {
       const tasaInteres = intMensual / 100;
-      //const capital = parseFloat(precioAuto.replace(/,/g, '')); // Remover comas de miles y convertir a número
       const capital = precioAuto
       const meses = parseInt(plazoMes);
       setTodoRiesgo(((precioAuto * 0.03)).toFixed(0))
-      setSoat(622000)
       setMatricula(750000)
       setRevisiones(((precioAuto * 0.05) / 4) / 12)
       const cuota =
@@ -73,7 +71,6 @@ export default function CarExpensesCalculator() {
     if (!vehicles || vehicles.length === 0) return;
     setMarcas(marcasNew);
     setIdAll(vehicleIdNew);
-    //setLoading(true);
   }, [vehicles]);
 
   useEffect(() => {
@@ -90,29 +87,15 @@ export default function CarExpensesCalculator() {
     postPricesMonthly(priceApiUrl, bodyMonthly)
       .then(result => setResultPrice(result))
 
-      setPrecioAuto(selectedVehicle?.attributes?.pricePvp ?? "");
-      const tasaInteres = intMensual / 100;
-      const meses = parseInt(plazoMes);
-      const cuota =
-        (selectedVehicle?.attributes?.pricePvp * tasaInteres * Math.pow(1 + tasaInteres, meses)) /
-        (Math.pow(1 + tasaInteres, meses) - 1);
-      const total = parseInt((Number(cuota)) + (Number(((selectedVehicle?.attributes?.pricePvp * 0.03)).toFixed(0)) / 12) + (Number(soat) / 12) + (Number(matricula) / 12) + (Number((selectedVehicle?.attributes?.pricePvp * 0.05) * 4) / 12));
-      setTotalCost(isNaN(total) ? 0 : total);
+    setPrecioAuto(selectedVehicle?.attributes?.pricePvp ?? "");
+    const tasaInteres = intMensual / 100;
+    const meses = parseInt(plazoMes);
+    const cuota =
+      (selectedVehicle?.attributes?.pricePvp * tasaInteres * Math.pow(1 + tasaInteres, meses)) /
+      (Math.pow(1 + tasaInteres, meses) - 1);
+    const total = parseInt((Number(cuota)) + (Number(((selectedVehicle?.attributes?.pricePvp * 0.03)).toFixed(0)) / 12) + (Number(soat) / 12) + (Number(matricula) / 12) + (Number((selectedVehicle?.attributes?.pricePvp * 0.05) * 4) / 12));
+    setTotalCost(isNaN(total) ? 0 : total);
   }, [bodyMonthly]);
-
-  // useEffect(() => {
-  //   // console.log(selectedVehicle , 'selectedVehicle before if')
-  //   if(selectedVehicle != undefined && selectedVehicle != ''){
-  //     //console.log(selectedVehicle, 'selectedVehicle')
-  //     //const selectedVehicle2 = vehicles.find(v => v.attributes.ID_propio === '435');
-  //     //console.log(selectedVehicle2 , 'selectedVehicle2')
-  //     //setSelectedVehicle(selectedVehicle2);
-  //     //setLoading(true);
-  //     //console.log(selectedVehicle2, 'selectedVehicle2')
-  //     //handleVehicleChange({target: {value: selectedVehicle2?.attributes?.ID_propio}});
-  //     //handleVehicleChange({target: {value: selectedVehicle2}});
-  //   }
-  // }, [selectedVehicle]);
 
   const postPricesMonthly = async (priceUrl, data) => {
     try {
@@ -138,6 +121,32 @@ export default function CarExpensesCalculator() {
     }).filter((value, index, self) => self.indexOf(value) === index)));
   }
 
+  const CalculateSoat = (cc, type) => {
+    let valorSoat = 0
+    switch (type) {
+      case 'Campero o camioneta':
+        if (cc >= 2500) {
+          return valorSoat = 1022700
+        } else if (cc >= 1500) {
+          return valorSoat = 1032900
+        } else if (cc <= 2500) {
+          return valorSoat = 730300
+        } else {
+          return valorSoat = 622000
+        }
+      case "Vehiculo Familiar":
+        if (cc >= 2500) {
+          return valorSoat = 585900
+        } else if (cc >= 1500) {
+          return valorSoat = 501700
+        } else if (cc <= 2500) {
+          return valorSoat = 412000
+        } else {
+          return valorSoat = 622000
+        }
+    }
+  }
+
   if (resultPrice.length > 0) {
     vehicles?.map(function (vehicle) {
       resultPrice.forEach(function (item) {
@@ -145,18 +154,17 @@ export default function CarExpensesCalculator() {
           vehicle.attributes.priceNormal = item.price;
         }
       });
-      vehiclesPvp.forEach(function (item) {
-        if (vehicle.attributes.ID_propio === item.ID_propio) {
-          vehicle.attributes.pricePvp = item.valorPVP;
+      vehiclesPrice.forEach(function (item) {
+        if (vehicle.attributes.ID_propio === item.attributes.internal_code) {
+          vehicle.attributes.pricePvp = item.attributes.PVP;
+          vehicle.attributes.typeVehicle = item.attributes.Type.Type;
+          vehicle.attributes.Cilindraje = item.attributes.datasheet[0].cilindraje;
+          if (vehicle?.attributes?.Cilindraje) {
+            let valorSoat = CalculateSoat(vehicle.attributes.Cilindraje, item.attributes.Type.Type)
+            vehicle.attributes.valorSoat = valorSoat
+          }
         }
       })
-      // vehiclesPrice.forEach(function (item){
-      //   if (vehicle.attributes.ID_propio === item.attributes.internal_code) {
-      //     vehicle.attributes.pricePvp = item.attributes.PVC;
-      //     vehicle.attributes.typeVehicle = item.attributes.Type.Type;
-      //     vehicle.attributes.Cilindraje = item.attributes.datasheet[0].cilindraje;
-      //   }
-      // })
     });
   }
 
@@ -172,6 +180,7 @@ export default function CarExpensesCalculator() {
       (Math.pow(1 + tasaInteres, meses) - 1);
     const total = parseInt((Number(cuota)) + (Number(((selectedVehicle?.attributes?.pricePvp * 0.03)).toFixed(0)) / 12) + (Number(soat) / 12) + (Number(matricula) / 12) + (Number((selectedVehicle?.attributes?.pricePvp * 0.05) / 4) / 12));
     setTotalCost(isNaN(total) ? 0 : total);
+    setSoat(selectedVehicle?.attributes?.valorSoat)
   }
 
   const calculateTotalCost = () => {
@@ -241,7 +250,7 @@ export default function CarExpensesCalculator() {
               <button type="submit">Calcular</button>
             </div>
           </form>
-        </div>        
+        </div>
         <div className="container">
           <h1>Suscripción mensual con Renting TUIO</h1>
 
@@ -287,7 +296,7 @@ export default function CarExpensesCalculator() {
                 <div>
                   <p>costo total por 48 meses con suscripción y 10.000 kilometros:</p>
                   <h3>$ {(selectedVehicle?.attributes?.priceNormal * 48).toLocaleString()}</h3>
-                </div>                
+                </div>
               </div>
               <div className="row">
                 <small>Nota: Los valores anteriores son estimativos, y de consumo mensual, pueden variar de acuerdo al precio del vehículo o al perfil crediticio que tengas en el momento. Tambien no se aplican valores de depreciacion e impuestos anuales de acuerdo a tu secretaria de transito para tu credito tradicional</small>
